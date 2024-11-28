@@ -8,6 +8,9 @@ app.use(express.json())
 
 app.post('/login',function(req,res){
     let loginInfo = req.body;
+    console.log(loginInfo.id);
+    console.log(loginInfo.password);
+    
 
     if(loginInfo.id && loginInfo.password)
     {   
@@ -25,13 +28,13 @@ app.post('/login',function(req,res){
             }
             else{
                 res.status(400).json({
-                    message : "아이디와 비밀번호를 제대로 입력해 주십시요"
+                    message : "아이디 혹은 비밀번호가 틀렸습니다"
                 });
             }
         }
         else{
             res.status(400).json({
-                message : "아이디와 비밀번호를 제대로 입력해 주십시요"
+                message : "아이디 혹은 비밀번호가 틀렸습니다"
             });
         }
         
@@ -117,3 +120,22 @@ app.route('/users/:id')
         }
         
     })
+
+    function isEmpty(obj){
+        if(Object.keys(obj).length === 0)
+        {
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+    function searchUserbyId(id){
+        db.forEach(function(user,temp){
+            if(user.id === id){
+                return user;
+            }
+        })
+        return undefined;
+    }
