@@ -1,43 +1,60 @@
 const express = require('express');
-const app = express();
-app.listen(3000);
+const router = express.Router();
+
 
 var db = new Map();
 var channelId = 1;
 
-app.use(express.json());
+router.use(express.json());
 
-app.route('/channels')
+router.route('/')
 .post((req,res)=>{
-    if(req.body.channelName){
+    if(req.body.channelName && req.body.userId){
         db.set(channelId++,req.body);
         res.status(201).json({
             message : `${db.get(channelId-1).channelName}채널을 생성했습니다.`
         });
     }else{
         res.status(400).json({
-            message : "채널 이름을 제대로 입력해주세요!"
+            message : "채널 이름과 아이디을 제대로 입력해주세요!"
         })
     }
     
 })
 .get((req,res)=>{
     var channelTemp=[];
-
-        if(db.size !== 0){
+    var userId = req.body.userId;
+    var isThereUserIdInDB = false;
+        if(db.size !== 0 && userId){
             db.forEach(function(dbJson, index){
-                channelTemp.push(dbJson);
+                if(dbJson.userId === userId)
+                {
+                    channelTemp.push(dbJson);
+                    isThereUserIdInDB=true;
+                }
             });
 
-            res.status(200).json(channelTemp)
-        }else{
+            if(isThereUserIdInDB){
+                res.status(200).json(channelTemp)
+            }
+            else{
+                res.status(404).json({
+                    message : "로그인이 필요한 페이지입니다"
+                })
+            }
+        }else if(db.size === 0 && userId){
             res.status(404).json({
-                message : "채널이 DB에 없습니다."
+                message : "채널이 없습니다."
+            })
+        }
+        else{
+            res.status(404).json({
+                message : "로그인이 필요한 페이지입니다"
             })
         }
 })
 
-app.route('/channels/:id')
+router.route('/:id')
 .get((req,res)=>{
     let param = parseInt(req.params.id);
     let channel = db.get(param);
@@ -45,9 +62,7 @@ app.route('/channels/:id')
         res.status(200).json(channel);
     }
     else{
-        res.status(404).json({
-            message : "채널을 찾을 수 없습니다."
-        })
+        noChannelFound()
     }
 })
 .put((req,res)=>{
@@ -72,9 +87,7 @@ app.route('/channels/:id')
         }
     }
     else{
-        res.status(404).json({
-            message : "채널을 찾을 수 없습니다."
-        })
+        noChannelFound()
     }
 })
 .delete((req,res)=>{
@@ -87,9 +100,16 @@ app.route('/channels/:id')
         });
     }
     else{
-        res.status(404).json({
-            message : "채널을 찾을 수 없습니다."
-        })
+        noChannelFound()
     }
 })
+
+function noChannelFound()
+{
+    res.status(404).json({
+        message : "채널을 찾을 수 없습니다."
+    })
+}
+
+    module.exports = router;
 

@@ -1,26 +1,27 @@
 const express = require('express');
-const app = express();
-app.listen(3000);
+//const app = express();
+//app.listen(3000);
+const router = express.Router()
 
 var db = new Map();
 
-app.use(express.json())
+router.use(express.json())
 
-app.post('/login',function(req,res){
+router.post('/login',function(req,res){
     let loginInfo = req.body;
-    console.log(loginInfo.id);
+    console.log(loginInfo.userId);
     console.log(loginInfo.password);
     
 
-    if(loginInfo.id && loginInfo.password)
+    if(loginInfo.userId && loginInfo.password)
     {   
-        let userInfo = db.get(loginInfo.id);
+        let userInfo = db.get(loginInfo.userId);
 
         if(userInfo)
         {
             if(userInfo.password === loginInfo.password)
             {
-                let userName = db.get(loginInfo.id).name;
+                let userName = db.get(loginInfo.userId).name;
 
                 res.status(201).json({
                     message : `${userName}님 환영합니다.`
@@ -46,21 +47,21 @@ app.post('/login',function(req,res){
     }
 })
 
-app.post('/join',function(req,res){
+router.post('/join',function(req,res){
     let loginInfo = req.body;
     //console.log(loginInfo);
     //console.log(loginInfo.id);
-    let userId = loginInfo.id;
+    let userId = loginInfo.userId;
     if(userId)
     {
         if(!db.get(userId))
         {
             if(loginInfo.name && loginInfo.password)
                 {
-                    db.set(loginInfo.id,loginInfo);
+                    db.set(loginInfo.userId,loginInfo);
             
                     res.json({
-                            message : `${db.get(loginInfo.id).name}님 환영합니다.`
+                            message : `${db.get(loginInfo.userId).name}님 환영합니다.`
                         });
                 }
                 else{
@@ -84,14 +85,14 @@ app.post('/join',function(req,res){
     
 })
 
-app.route('/users/:id')
+router.route('/users')
     .get(function(req,res){
-        let id = req.params.id;
+        let id = req.body.userId;
         let userInfo = db.get(id);
         if(userInfo)
         {
             res.json({
-                id : userInfo.id,
+                userId : userInfo.userId,
                 name : userInfo.name
             });
         }
@@ -103,7 +104,7 @@ app.route('/users/:id')
         
     })
     .delete(function(req,res){
-        let id = req.params.id;
+        let id = req.body.userId;
         let deletedUser = db.get(id);
 
         if(deletedUser)
@@ -139,3 +140,5 @@ app.route('/users/:id')
         })
         return undefined;
     }
+
+    module.exports = router;
