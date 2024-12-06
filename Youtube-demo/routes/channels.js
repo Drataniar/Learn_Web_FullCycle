@@ -1,19 +1,19 @@
 const express = require('express');
 const router = express.Router();
-
-
-var db = new Map();
-var channelId = 1;
-
+const connection = require('../mariadb');
 router.use(express.json());
 
 router.route('/')
 .post((req,res)=>{
-    if(req.body.channelName && req.body.userId){
-        db.set(channelId++,req.body);
-        res.status(201).json({
-            message : `${db.get(channelId-1).channelName}채널을 생성했습니다.`
-        });
+    const { channelName, userId} = req.body;
+    if(channelName && userId){
+        let sql = `INSERT INTO channels (name, user_id) VALUE(?,?)`;
+        connection.query(sql,[channelName,userId],function (err, results) {
+            res.status(201).json({
+                message : `${channelName}채널을 생성하였습니다.`
+            });
+            }
+          );
     }else{
         res.status(400).json({
             message : "채널 이름과 아이디을 제대로 입력해주세요!"
@@ -22,89 +22,100 @@ router.route('/')
     
 })
 .get((req,res)=>{
-    var channelTemp=[];
     var userId = req.body.userId;
-    var isThereUserIdInDB = false;
-        if(db.size !== 0 && userId){
-            db.forEach(function(dbJson, index){
-                if(dbJson.userId === userId)
-                {
-                    channelTemp.push(dbJson);
-                    isThereUserIdInDB=true;
-                }
-            });
-
-            if(isThereUserIdInDB){
-                res.status(200).json(channelTemp)
+    let sql = `SELECT * FROM channels WHERE user_id = ?`;
+    if(userId){
+        connection.query(sql,userId,function (err, results) {
+            if(results.length !== 0){
+                res.status(201).json(results)
             }
             else{
-                res.status(404).json({
-                    message : "로그인이 필요한 페이지입니다"
-                })
+                noChannelFound(res)
             }
-        }else if(db.size === 0 && userId){
-            res.status(404).json({
-                message : "채널이 없습니다."
-            })
+            
         }
-        else{
-            res.status(404).json({
-                message : "로그인이 필요한 페이지입니다"
-            })
-        }
+        )
+    }else{
+        res.status(400).end();
+    }
+
+        
+
+
+
+        
 })
 
 router.route('/:id')
 .get((req,res)=>{
     let param = parseInt(req.params.id);
-    let channel = db.get(param);
-    if(channel){
-        res.status(200).json(channel);
+
+    let sql = `SELECT * FROM channels WHERE id = ?`;
+    connection.query(sql,param,function (err, results) {
+        if(results.length !== 0){
+            res.status(201).json(results)
+        }
+        else{
+            noChannelFound(res)
+        }
+        
     }
-    else{
-        noChannelFound()
-    }
+    );
 })
 .put((req,res)=>{
     let param = parseInt(req.params.id);
-    let previousChannelName = db.get(param).channelName;
-    let channel = db.get(param);
     let newChannelName = req.body.channelName;
-    if(channel){
-        if(newChannelName)
-        {
-            channel.channelName = newChannelName;
-            db.set(param,channel);
-
+    let previousChannelName  = "";
+    let sql = `SELECT * FROM channels WHERE id = ?`;
+    connection.query(sql,param,function (err, results) {
+        if(results){
+           previousChannelName = results[0].name;
+        }
+        else{
+            noChannelFound(res)
+        }
+        
+    }
+    );
+    let sql2 = `UPDATE channels SET name = ? WHERE id = ?`;
+    connection.query(sql2,[newChannelName,param],function (err, results) {
+        if(results){
             res.status(201).json({
                 message : `${previousChannelName}채널이 ${newChannelName}으로 바뀌었습니다,`
             });
         }
         else{
-            res.status(400).json({
-                message : `바꿀 채널 이름을 넣어주세요`
-            });
+            noChannelFound(res)
         }
+        
     }
-    else{
-        noChannelFound()
-    }
+    );
+
 })
 .delete((req,res)=>{
     let param = parseInt(req.params.id);
-    let channel = db.get(param);
-    if(channel){
-        db.delete(param);
-        res.status(200).json({
-            message : `${channel.channelName}채널이 삭제되었습니다.`
-        });
-    }
-    else{
-        noChannelFound()
-    }
+    let sql = `SELECT * FROM channels WHERE id = ?`;
+    connection.query(sql,param,function (err, results) {
+        deletedUser = results[0];
+        if(deletedUser)
+            {
+                let deleteSql = `DELETE FROM channels WHERE id = ?`;
+                    connection.query(deleteSql,param,function (err, results) {
+                            res.json({
+                                message : `${deletedUser.name}님 다음에 안녕히가십시오`
+                            })
+                            }
+                          );
+            }
+            else{
+                noChannelFound(res)
+            }
+        
+    });
+
 })
 
-function noChannelFound()
+function noChannelFound(res)
 {
     res.status(404).json({
         message : "채널을 찾을 수 없습니다."
