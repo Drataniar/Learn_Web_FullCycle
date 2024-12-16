@@ -2,7 +2,17 @@ const express = require('express');
 const router = express.Router();
 const connection = require('../mariadb');
 const {body,param,validationResult} = require('express-validator');
+const validate = (req,res, next) => {
+    const err = validationResult(req);
 
+        if(err.isEmpty()){
+            return next();
+        }else{
+            console.log(err.array());
+            return res.status(400).json(err.array());
+            
+        }
+}
 router.use(express.json());
 
 router.route('/')
@@ -10,7 +20,7 @@ router.route('/')
         body('channelName').notEmpty().isString().withMessage('문자 입력 필요!'),
         validate
 ]
-    ,(req,res)=>{
+    ,(req,res,next)=>{
         
 
     const { channelName, userId} = req.body;
@@ -29,7 +39,7 @@ router.route('/')
 .get([body('userId').notEmpty().isInt().withMessage('숫자 입력 필요!'),
     validate
 ],
-    (req,res)=>{
+    (req,res, next)=>{
 
         const err = validationResult(req);
 
@@ -64,8 +74,10 @@ router.route('/')
 })
 
 router.route('/:id')
-.get(param('id').notEmpty().isInt().withMessage('채널 id 필요!'),
-    (req,res)=>{
+.get([param('id').notEmpty().isInt().withMessage('채널 id 필요!'),
+    validate
+],
+    (req,res,next)=>{
         const err = validationResult(req);
 
         if(!err.isEmpty()){
@@ -93,8 +105,9 @@ router.route('/:id')
     );
 })
 .put([param('id').notEmpty().isInt().withMessage('채널 id 필요!'),
-    body('channelName').notEmpty().isString().withMessage('채널명 오류!')],
-    (req,res)=>{
+    body('channelName').notEmpty().isString().withMessage('채널명 오류!'),
+validate],
+    (req,res,next)=>{
         const err = validationResult(req);
 
         if(!err.isEmpty()){
@@ -135,8 +148,10 @@ router.route('/:id')
     
 
 })
-.delete(param('id').notEmpty().isInt().withMessage('채널 id 필요!'),
-    (req,res)=>{
+.delete([param('id').notEmpty().isInt().withMessage('채널 id 필요!'),
+    validate
+],
+    (req,res,next)=>{
         const err = validationResult(req);
 
         if(!err.isEmpty()){
@@ -173,14 +188,7 @@ function noChannelFound(res)
     })
 }
 
-const validate = (req,res) => {
-    const err = validationResult(req);
 
-        if(!err.isEmpty()){
-            console.log(err.array());
-            return res.status(400).json(err.array());
-        }
-}
 
     module.exports = router;
 
